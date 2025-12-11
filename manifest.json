@@ -1,0 +1,36 @@
+{
+  "manifest_version": 2,
+  "name": "PlexiCopy",
+  "version": "1.0",
+  "description": "Adds a clean-copy button to Perplexity answers, removing citation markers and source URLs.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "plexicopy@local",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  },
+  "icons": {
+    "32": "icons/icon.svg",
+    "64": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  },
+  "permissions": [
+    "activeTab",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.perplexity.ai/*",
+        "*://perplexity.ai/*"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}
+
