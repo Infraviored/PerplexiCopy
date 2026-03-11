@@ -32,6 +32,8 @@ FILES=(
   "manifest.json"
   "content.js"
   "icons"
+  "popup.html"
+  "popup.js"
 )
 
 # Create zip file

@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "PlexiCopy",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Clean up Perplexity answers: hide UI citations and copy perfectly cleaned Markdown or plain text with one click.",
   "browser_specific_settings": {
     "gecko": {

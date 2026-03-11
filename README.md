@@ -20,7 +20,7 @@
 If you want to build or modify PlexiCopy yourself:
 
 1. **Modify**: Edit `content.js`, `manifest.json`, or the popup files.
-2. **Build**: Run `./package.sh` to generate the `.zip` bundle in the `dist/` folder.
+2. **Build**: Run `./package.sh` to build `dist/plexicopy-v1.2.zip`.
 3. **Load Locally**: In Firefox, go to `about:addons` → Gear icon → "Install Add-on From File..." and select the zip from `dist/`.
 
 *Note: Requires `clipboard` and `storage` permissions to process text and save your UI preferences.*
