@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- License: MIT. Made by radix-ui -->
+
+<svg
+   width="693.33331"
+   height="693.33014"
+   viewBox="0 0 13 12.99994"
+   fill="none"
+   version="1.1"
+   id="svg2874"
+   sodipodi:docname="copy-nomd.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs2878" />
+  <sodipodi:namedview
+     id="namedview2876"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="1.0525"
+     inkscape:cx="314.48931"
+     inkscape:cy="348.21853"
+     inkscape:window-width="1872"
+     inkscape:window-height="1011"
+     inkscape:window-x="48"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2874" />
+  <!-- copy icon -->
+  <path
+     fill-rule="evenodd"
+     clip-rule="evenodd"
+     d="m 0,8.5 c 0,0.82844 0.67157,1.50004 1.5,1.50004 H 3 v -1 H 1.5 C 1.22386,9.00004 1,8.77614 1,8.5 v -7 C 1,1.22386 1.22386,1 1.5,1 h 7 C 8.77614,1 9,1.22386 9,1.5 V 2.99996 H 4.5 c -0.82842,0 -1.5,0.67157 -1.5,1.5 v 6.99998 c 0,0.8284 0.67158,1.5 1.5,1.5 h 7 c 0.8284,0 1.5,-0.6716 1.5,-1.5 V 4.49996 c 0,-0.82843 -0.6716,-1.5 -1.5,-1.5 H 10 V 1.5 C 10,0.67157 9.3284,0 8.5,0 h -7 C 0.67157,0 0,0.67157 0,1.5 Z M 4,4.49996 c 0,-0.27614 0.22386,-0.5 0.5,-0.5 h 7 c 0.2761,0 0.5,0.22386 0.5,0.5 v 6.99998 c 0,0.2762 -0.2239,0.5 -0.5,0.5 h -7 c -0.27614,0 -0.5,-0.2238 -0.5,-0.5 z"
+     fill="#808080"
+     id="path2862" />
+  <!-- MD as vectors -->
+  <g
+     stroke="#808080"
+     stroke-width="0.8"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     aria-label="MD"
+     id="g2870"
+     transform="translate(-1,-1.00006)">
+    <!-- M -->
+    <path
+       d="M 6.2,11.4 V 6.7 L 7.5,10 8.8,6.7 v 4.7"
+       id="path2864" />
+    <!-- D -->
+    <path
+       d="m 9.8,6.7 v 4.7"
+       id="path2866" />
+    <path
+       d="m 9.8,6.7 q 2.4,0.8 2.4,2.35 0,1.55 -2.4,2.35"
+       id="path2868" />
+  </g>
+  <!-- strike -->
+  <line
+     x1="3"
+     y1="10.99994"
+     x2="12"
+     y2="4.9999399"
+     stroke="#808080"
+     stroke-width="1"
+     stroke-linecap="round"
+     id="line2872" />
+</svg>

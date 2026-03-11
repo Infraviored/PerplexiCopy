@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --bg: #111111;
+            --fg: #eeeeee;
+            --accent: #2e7d32;
+            --accent-hover: #388e3c;
+            --border: #333333;
+        }
+
+        body {
+            width: 240px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--fg);
+            margin: 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 12px;
+            background: #1a1a1a;
+            border: 1px solid var(--border);
+            transition: border-color 0.2s;
+        }
+
+        .toggle-container:hover {
+            border-color: #444;
+        }
+
+        .label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Switch styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .3s;
+            border-radius: 22px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--accent);
+        }
+
+        input:focus+.slider {
+            box-shadow: 0 0 1px var(--accent);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(18px);
+        }
+
+        .footer {
+            margin-top: 16px;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>PlexiCopy</h1>
+    </div>
+    <div class="toggle-container">
+        <span class="label">Hide citations in UI</span>
+        <label class="switch">
+            <input type="checkbox" id="hideCitationsToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="footer">
+        Clean answers, better focus.
+    </div>
+    <script src="popup.js"></script>
+</body>
+
+</html>

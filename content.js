@@ -1,5 +1,6 @@
 (() => {
-  const CLEAN_BUTTON_LABEL = 'Clean Copy';
+  const CLEAN_BUTTON_LABEL = 'Copy without Citations';
+  const STRIP_MD_BUTTON_LABEL = 'Copy without citations and Markdown';
   const BUTTON_CLASSNAMES = [
     'focus-visible:bg-subtle',
     'hover:bg-subtle',
@@ -35,7 +36,19 @@
 
   const state = {
     observer: null,
+    hideCitations: false,
+    styleElement: null,
   };
+
+  const CITATION_HIDE_STYLE = `
+    .citation-nbsp,
+    span.inline-flex[aria-label*=".pdf"],
+    span[data-pplx-citation],
+    span.citation,
+    span:has(> [data-pplx-citation]) {
+      display: none !important;
+    }
+  `;
 
   const runtime =
     typeof browser !== 'undefined'
@@ -43,6 +56,27 @@
       : typeof chrome !== 'undefined'
         ? chrome.runtime
         : null;
+
+  function stripMarkdown(md) {
+    if (!md) return '';
+    return md
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // images -> alt text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links -> text
+      .replace(/(```[\s\S]*?```|~~~[\s\S]*?~~~)/g, '') // fenced code blocks
+      .replace(/`([^`]+)`/g, '$1') // inline code
+      .replace(/^#{1,6}\s+/gm, '') // headings
+      .replace(/^\s*\*\s+/gm, '- ') // normalize * bullets to -
+      .replace(/^\s*\+\s+/gm, '- ') // normalize + bullets to -
+      .replace(/^\s*\d+\.\s+/gm, '') // ol numbers
+      .replace(/^\s*>\s?/gm, '') // blockquotes
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // bold
+      .replace(/__([^_]+)__/g, '$1') // bold
+      .replace(/\*([^*]+)\*/g, '$1') // italics
+      .replace(/_([^_]+)_/g, '$1') // italics
+      .replace(/~~([^~]+)~~/g, '$1') // strikethrough
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
 
   function cleanText(raw) {
     if (!raw) return '';
@@ -90,8 +124,11 @@
     result = result.replace(/\s+\[\d+\]/g, '');
     result = result.replace(/\[\d+\]\s+/g, '');
 
+    // Remove inline citations like [ppl-ai-file-upload.s3.amazonaws](https://...)
+    result = result.replace(/\s?\[[^\]]+\]\(https?:\/\/[^\)]+\)/g, '');
+
     // Remove URLs in parentheses that might be inline: (https://...)
-    result = result.replace(/\(https?:\/\/[^\)]+\)/g, '');
+    result = result.replace(/\s?\(https?:\/\/[^\)]+\)/g, '');
 
     // Remove multiple consecutive blank lines
     result = result.replace(/\n{3,}/g, '\n\n');
@@ -108,7 +145,7 @@
         const text = await navigator.clipboard.readText();
         if (text) return text;
       }
-    } catch (err) {}
+    } catch (err) { }
     return '';
   }
 
@@ -154,22 +191,23 @@
     return copyButton.closest('div')?.innerText || '';
   }
 
-  function createIcon() {
+  function createIcon(iconPath) {
     const img = document.createElement('img');
     img.setAttribute('aria-hidden', 'true');
     img.alt = '';
     img.width = 16;
     img.height = 16;
     if (runtime) {
-      img.src = runtime.getURL('icons/icon.svg');
+      img.src = runtime.getURL(iconPath || 'icons/icon.svg');
     }
     return img;
   }
 
-  function createButton() {
+  function createButton(label, iconPath) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.setAttribute('aria-label', CLEAN_BUTTON_LABEL);
+    button.setAttribute('aria-label', label);
+    button.title = label; // Tooltip on hover
     button.classList.add(...BUTTON_CLASSNAMES);
 
     const wrapper = document.createElement('div');
@@ -177,7 +215,7 @@
 
     const iconWrapper = document.createElement('div');
     iconWrapper.classList.add('flex', 'shrink-0', 'items-center', 'justify-center', 'size-4');
-    iconWrapper.appendChild(createIcon());
+    iconWrapper.appendChild(createIcon(iconPath));
 
     wrapper.appendChild(iconWrapper);
     button.appendChild(wrapper);
@@ -228,17 +266,23 @@
     }
   }
 
-  async function copyCleanText(copyButton, cleanButton) {
+  async function copyCleanText(copyButton, cleanButton, shouldStripMarkdown = false) {
     try {
       const raw = await copyUsingNativeButton(copyButton);
-      const cleaned = cleanText(raw);
+      let cleaned = cleanText(raw);
+
+      if (shouldStripMarkdown) {
+        cleaned = stripMarkdown(cleaned);
+      }
+
       if (!cleaned) {
         showTempStatus(cleanButton, 'Nothing to copy');
         return;
       }
       const ok = await writeToClipboard(cleaned);
       if (ok) wiggle(cleanButton);
-      showTempStatus(cleanButton, ok ? 'Copied clean text' : 'Copy failed');
+      const successLabel = shouldStripMarkdown ? 'Copied without MD' : 'Copied without Citations';
+      showTempStatus(cleanButton, ok ? successLabel : 'Copy failed');
     } catch (err) {
       showTempStatus(cleanButton, 'Copy failed');
     }
@@ -247,15 +291,27 @@
   function placeButton(nextToButton) {
     if (!nextToButton || nextToButton.dataset.cleanCopyAttached === 'true') return;
 
-    const cleanBtn = createButton();
+    // First button: Standard Clean Copy
+    const cleanBtn = createButton(CLEAN_BUTTON_LABEL, 'icons/copy-nocite.svg');
     cleanBtn.dataset.cleanCopyButton = 'true';
-
     cleanBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      copyCleanText(nextToButton, cleanBtn);
+      copyCleanText(nextToButton, cleanBtn, false);
     });
 
+    // Second button: Strip Markdown
+    const stripBtn = createButton(STRIP_MD_BUTTON_LABEL, 'icons/copy-nomd.svg');
+    stripBtn.dataset.stripMdButton = 'true';
+    stripBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      copyCleanText(nextToButton, stripBtn, true);
+    });
+
+    // We add them after the native copy button
+    // To keep them together, we could wrap them or just insert them sequentially
+    nextToButton.insertAdjacentElement('afterend', stripBtn);
     nextToButton.insertAdjacentElement('afterend', cleanBtn);
+
     nextToButton.dataset.cleanCopyAttached = 'true';
   }
 
@@ -272,7 +328,37 @@
     state.observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  function updateHidingStyle() {
+    if (state.hideCitations) {
+      if (!state.styleElement) {
+        state.styleElement = document.createElement('style');
+        state.styleElement.id = 'plexicopy-hide-citations';
+        document.head.appendChild(state.styleElement);
+      }
+      state.styleElement.textContent = CITATION_HIDE_STYLE;
+    } else if (state.styleElement) {
+      state.styleElement.textContent = '';
+    }
+  }
+
+  function initSettings() {
+    chrome.storage.local.get(['hideCitations'], (result) => {
+      state.hideCitations = result.hideCitations || false;
+      updateHidingStyle();
+    });
+
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.action === 'updateSettings') {
+        if ('hideCitations' in message.settings) {
+          state.hideCitations = message.settings.hideCitations;
+          updateHidingStyle();
+        }
+      }
+    });
+  }
+
   function init() {
+    initSettings();
     scanAndAttach();
     initObserver();
   }

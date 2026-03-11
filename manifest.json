@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "PlexiCopy",
-  "version": "1.0",
-  "description": "Adds a clean-copy button to Perplexity answers, removing citation markers and source URLs.",
+  "version": "1.1",
+  "description": "Clean up Perplexity answers: hide UI citations and copy perfectly cleaned Markdown or plain text with one click.",
   "browser_specific_settings": {
     "gecko": {
       "id": "plexicopy@local",
@@ -21,16 +21,22 @@
   "permissions": [
     "activeTab",
     "clipboardRead",
-    "clipboardWrite"
+    "clipboardWrite",
+    "storage"
   ],
+  "browser_action": {
+    "default_title": "PlexiCopy Settings",
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": [
         "*://www.perplexity.ai/*",
         "*://perplexity.ai/*"
       ],
-      "js": ["content.js"]
+      "js": [
+        "content.js"
+      ]
     }
   ]
 }
-

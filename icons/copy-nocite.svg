@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- License: MIT. Made by radix-ui -->
+
+<svg
+   width="693.33331"
+   height="693.33014"
+   viewBox="0 0 13 12.99994"
+   fill="none"
+   version="1.1"
+   id="svg14"
+   sodipodi:docname="copy-nocite.svg"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs18" />
+  <sodipodi:namedview
+     id="namedview16"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="false"
+     inkscape:zoom="0.37211494"
+     inkscape:cx="647.64935"
+     inkscape:cy="251.26645"
+     inkscape:window-width="1872"
+     inkscape:window-height="1011"
+     inkscape:window-x="48"
+     inkscape:window-y="32"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg14" />
+  <!-- copy icon -->
+  <path
+     fill-rule="evenodd"
+     clip-rule="evenodd"
+     d="m 0,8.5 c 0,0.82844 0.67157,1.50004 1.5,1.50004 H 3 v -1 H 1.5 C 1.22386,9.00004 1,8.77614 1,8.5 v -7 C 1,1.22386 1.22386,1 1.5,1 h 7 C 8.77614,1 9,1.22386 9,1.5 V 2.99996 H 4.5 c -0.82842,0 -1.5,0.67157 -1.5,1.5 v 6.99998 c 0,0.8284 0.67158,1.5 1.5,1.5 h 7 c 0.8284,0 1.5,-0.6716 1.5,-1.5 V 4.49996 c 0,-0.82843 -0.6716,-1.5 -1.5,-1.5 H 10 V 1.5 C 10,0.67157 9.3284,0 8.5,0 h -7 C 0.67157,0 0,0.67157 0,1.5 Z M 4,4.49996 c 0,-0.27614 0.22386,-0.5 0.5,-0.5 h 7 c 0.2761,0 0.5,0.22386 0.5,0.5 v 6.99998 c 0,0.2762 -0.2239,0.5 -0.5,0.5 h -7 c -0.27614,0 -0.5,-0.2238 -0.5,-0.5 z"
+     fill="#808080"
+     id="path2" />
+  <!-- citation as vectors, not text -->
+  <g
+     transform="matrix(1.3,0,0,1.3,-0.5,-5.50006)"
+     stroke="#808080"
+     stroke-width="0.8"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     aria-label="[1]"
+     id="g10">
+    <!-- [ -->
+    <path
+       d="M 5.1,8.6 H 4.5 v 3.6 h 0.6"
+       id="path4" />
+    <path
+       d="M 6.2,9.1 6.9,8.6 v 3.6"
+       id="path6" />
+    <path
+       d="m 8.1,8.6 h 0.6 v 3.6 H 8.1"
+       id="path8" />
+  </g>
+  <!-- strike -->
+  <line
+     x1="3"
+     y1="10.99994"
+     x2="12"
+     y2="4.9999399"
+     stroke="#808080"
+     stroke-width="1"
+     stroke-linecap="round"
+     id="line12" />
+</svg>
