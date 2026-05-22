@@ -315,9 +315,43 @@
     nextToButton.dataset.cleanCopyAttached = 'true';
   }
 
+  function isCopyButton(button) {
+    const label = (button.getAttribute('aria-label') || button.getAttribute('title') || '').toLowerCase().trim();
+    if (!label) return false;
+
+    const hasCopy = label.includes('copy') || 
+                    label.includes('kopier') || 
+                    label.includes('copi') || 
+                    label.includes('복사') || 
+                    label.includes('复制') || 
+                    label.includes('複製') || 
+                    label.includes('コピー') || 
+                    label.includes('копир') || 
+                    label.includes('kopy');
+
+    if (!hasCopy) return false;
+
+    const hasExclude = label.includes('link') || 
+                       label.includes('url') || 
+                       label.includes('share') || 
+                       label.includes('teilen') || 
+                       label.includes('partager') || 
+                       label.includes('compartir') || 
+                       label.includes('condividi') || 
+                       label.includes('dela') || 
+                       label.includes('delen') || 
+                       label.includes('paylaş');
+
+    return !hasExclude;
+  }
+
   function scanAndAttach() {
-    const copyButtons = document.querySelectorAll('button[aria-label="Copy"]');
-    copyButtons.forEach(placeButton);
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach((button) => {
+      if (isCopyButton(button)) {
+        placeButton(button);
+      }
+    });
   }
 
   function initObserver() {
