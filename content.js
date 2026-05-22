@@ -38,6 +38,11 @@
     observer: null,
     hideCitations: false,
     styleElement: null,
+    favoriteModel: '',
+    lastSelectionTime: 0,
+    chatObserver: null,
+    observedContainer: null,
+    enableThinking: true,
   };
 
   const CITATION_HIDE_STYLE = `
@@ -345,6 +350,228 @@
     return !hasExclude;
   }
 
+  const isMatch = (text, target) => {
+    if (!text || !target) return false;
+    const cleanText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanTarget = target.toLowerCase().replace(/[^a-z0-9]/g, '');
+    return cleanText.includes(cleanTarget) || cleanTarget.includes(cleanText);
+  };
+
+  const isDefaultModel = (text) => {
+    if (!text) return true;
+    const clean = text.toLowerCase().trim();
+    return clean === 'best' || clean === 'best selects the best available model' || clean === '';
+  };
+
+  const findTriggerButton = () => {
+    const chatContainer = document.querySelector('[data-ask-input-container="true"]');
+    if (chatContainer) {
+      const btn = chatContainer.querySelector('.inline-flex.-mr-sm button[aria-haspopup="menu"]');
+      if (btn) return btn;
+    }
+    return Array.from(document.querySelectorAll('button[aria-haspopup="menu"]'))
+      .find(btn => btn.querySelector('.text-box-trim-both') && btn.innerText);
+  };
+
+  async function checkAndApplyFavoriteModel() {
+    if (!state.favoriteModel) return;
+
+    const now = Date.now();
+    if (now - state.lastSelectionTime < 5000) {
+      return;
+    }
+
+    const trigger = findTriggerButton();
+    if (!trigger) return;
+
+    const currentModelText = trigger.innerText.trim();
+    if (isMatch(currentModelText, state.favoriteModel)) {
+      return;
+    }
+
+    if (!isDefaultModel(currentModelText)) {
+      return;
+    }
+
+    state.lastSelectionTime = now;
+
+    try {
+      trigger.focus();
+      trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+      trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      trigger.click();
+
+      const menuItems = await new Promise((resolve, reject) => {
+        const existingItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+        if (existingItems.length > 0) {
+          resolve(Array.from(existingItems));
+          return;
+        }
+
+        const menuObserver = new MutationObserver(() => {
+          const items = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+          if (items.length > 0) {
+            menuObserver.disconnect();
+            resolve(Array.from(items));
+          }
+        });
+
+        menuObserver.observe(document.body, { childList: true, subtree: true });
+
+        setTimeout(() => {
+          menuObserver.disconnect();
+          reject(new Error("Timeout waiting for menu items"));
+        }, 1500);
+      });
+
+      const selectableItems = menuItems.filter(item => {
+        const hasLock = item.querySelector('svg use[*|href*="lock"]') !== null || 
+                        item.querySelector('svg use[*|href*="pplx-icon-lock"]') !== null;
+        return !hasLock;
+      });
+
+      const matchedItem = selectableItems.find(item => {
+        const lines = item.innerText.split('\n');
+        const primaryName = lines[0].trim();
+        return isMatch(primaryName, state.favoriteModel) || isMatch(item.innerText, state.favoriteModel);
+      });
+
+      if (matchedItem) {
+        // 1. Click on the model
+        const events = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+        events.forEach(type => {
+          let evt;
+          if (type.startsWith('pointer')) {
+            evt = new PointerEvent(type, { bubbles: true, cancelable: true });
+          } else if (type.startsWith('mouse')) {
+            evt = new MouseEvent(type, { bubbles: true, cancelable: true });
+          } else {
+            evt = new Event(type, { bubbles: true, cancelable: true });
+          }
+          matchedItem.dispatchEvent(evt);
+        });
+
+        // 2. WAIT 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Re-open the menu if it was closed by selecting the model
+        let activeMenu = document.querySelector('[role="menu"]');
+        if (!activeMenu) {
+          const freshTrigger = findTriggerButton();
+          if (freshTrigger) {
+            freshTrigger.focus();
+            freshTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            freshTrigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            freshTrigger.click();
+            // Wait for menu to render
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            activeMenu = document.querySelector('[role="menu"]');
+          }
+        }
+
+        if (activeMenu) {
+          // Find the active/matched model in the open menu to toggle its slider
+          const currentMenuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+          const activeModelItem = Array.from(currentMenuItems).find(item => {
+            const lines = item.innerText.split('\n');
+            const primaryName = lines[0].trim();
+            return isMatch(primaryName, state.favoriteModel) || isMatch(item.innerText, state.favoriteModel);
+          });
+
+          if (activeModelItem) {
+            const container = activeModelItem.parentElement;
+            if (container) {
+              const thinkingItem = container.querySelector('[role="menuitemcheckbox"]');
+              if (thinkingItem) {
+                const isDisabled = thinkingItem.getAttribute('aria-disabled') === 'true' || 
+                                   thinkingItem.hasAttribute('data-disabled') || 
+                                   thinkingItem.querySelector('button[disabled]') !== null;
+                
+                if (!isDisabled) {
+                  const isCurrentChecked = thinkingItem.getAttribute('aria-checked') === 'true';
+                  if (isCurrentChecked !== state.enableThinking) {
+                    const toggleTarget = thinkingItem.querySelector('button[role="switch"]') || 
+                                         thinkingItem.querySelector('button') || 
+                                         thinkingItem;
+                    
+                    const toggleEvents = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'];
+                    toggleEvents.forEach(type => {
+                      let evt;
+                      if (type.startsWith('pointer')) {
+                        evt = new PointerEvent(type, { bubbles: true, cancelable: true });
+                      } else if (type.startsWith('mouse')) {
+                        evt = new MouseEvent(type, { bubbles: true, cancelable: true });
+                      } else {
+                        evt = new Event(type, { bubbles: true, cancelable: true });
+                      }
+                      toggleTarget.dispatchEvent(evt);
+                    });
+
+                    // 4. Wait 1 second after using the slider
+                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // 5. Close the dropdown
+        const finalMenu = document.querySelector('[role="menu"]');
+        if (finalMenu) {
+          const escEvent = new KeyboardEvent('keydown', {
+            key: 'Escape',
+            code: 'Escape',
+            keyCode: 27,
+            which: 27,
+            bubbles: true,
+            cancelable: true
+          });
+          finalMenu.dispatchEvent(escEvent);
+        }
+
+        const inputEl = document.getElementById('ask-input');
+        if (inputEl) {
+          inputEl.focus();
+        }
+
+        state.lastSelectionTime = Date.now();
+      } else {
+        trigger.click();
+        state.lastSelectionTime = Date.now();
+      }
+    } catch (err) {
+      state.lastSelectionTime = 0;
+    }
+  }
+
+  function initChatObserver() {
+    const container = document.querySelector('[data-ask-input-container="true"]');
+    if (!container) {
+      if (state.chatObserver) {
+        state.chatObserver.disconnect();
+        state.chatObserver = null;
+        state.observedContainer = null;
+      }
+      return;
+    }
+
+    if (state.observedContainer === container) {
+      return;
+    }
+
+    if (state.chatObserver) {
+      state.chatObserver.disconnect();
+    }
+
+    state.observedContainer = container;
+    state.chatObserver = new MutationObserver(() => {
+      checkAndApplyFavoriteModel();
+    });
+
+    state.chatObserver.observe(container, { childList: true, subtree: true, characterData: true });
+  }
+
   function scanAndAttach() {
     const buttons = document.querySelectorAll('button');
     buttons.forEach((button) => {
@@ -352,6 +579,8 @@
         placeButton(button);
       }
     });
+    initChatObserver();
+    checkAndApplyFavoriteModel();
   }
 
   function initObserver() {
@@ -376,9 +605,12 @@
   }
 
   function initSettings() {
-    chrome.storage.local.get(['hideCitations'], (result) => {
+    chrome.storage.local.get(['hideCitations', 'favoriteModel', 'enableThinking'], (result) => {
       state.hideCitations = result.hideCitations || false;
+      state.favoriteModel = result.favoriteModel || '';
+      state.enableThinking = result.enableThinking !== false;
       updateHidingStyle();
+      checkAndApplyFavoriteModel();
     });
 
     chrome.runtime.onMessage.addListener((message) => {
@@ -386,6 +618,16 @@
         if ('hideCitations' in message.settings) {
           state.hideCitations = message.settings.hideCitations;
           updateHidingStyle();
+        }
+        if ('favoriteModel' in message.settings) {
+          state.favoriteModel = message.settings.favoriteModel;
+          state.lastSelectionTime = 0;
+          checkAndApplyFavoriteModel();
+        }
+        if ('enableThinking' in message.settings) {
+          state.enableThinking = message.settings.enableThinking;
+          state.lastSelectionTime = 0;
+          checkAndApplyFavoriteModel();
         }
       }
     });
