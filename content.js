@@ -43,6 +43,7 @@
     chatObserver: null,
     observedContainer: null,
     enableThinking: true,
+    isSelectingModel: false,
   };
 
   const CITATION_HIDE_STYLE = `
@@ -299,6 +300,7 @@
     // First button: Standard Clean Copy
     const cleanBtn = createButton(CLEAN_BUTTON_LABEL, 'icons/copy-nocite.svg');
     cleanBtn.dataset.cleanCopyButton = 'true';
+    cleanBtn.dataset.cleanCopyAttached = 'true';
     cleanBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       copyCleanText(nextToButton, cleanBtn, false);
@@ -307,6 +309,7 @@
     // Second button: Strip Markdown
     const stripBtn = createButton(STRIP_MD_BUTTON_LABEL, 'icons/copy-nomd.svg');
     stripBtn.dataset.stripMdButton = 'true';
+    stripBtn.dataset.cleanCopyAttached = 'true';
     stripBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       copyCleanText(nextToButton, stripBtn, true);
@@ -321,6 +324,9 @@
   }
 
   function isCopyButton(button) {
+    if (button.dataset.cleanCopyButton === 'true' || button.dataset.stripMdButton === 'true') {
+      return false;
+    }
     const label = (button.getAttribute('aria-label') || button.getAttribute('title') || '').toLowerCase().trim();
     if (!label) return false;
 
@@ -357,6 +363,14 @@
     return cleanText.includes(cleanTarget) || cleanTarget.includes(cleanText);
   };
 
+  function debounce(fn, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+  }
+
   const isDefaultModel = (text) => {
     if (!text) return true;
     const clean = text.toLowerCase().trim();
@@ -370,10 +384,11 @@
       if (btn) return btn;
     }
     return Array.from(document.querySelectorAll('button[aria-haspopup="menu"]'))
-      .find(btn => btn.querySelector('.text-box-trim-both') && btn.innerText);
+      .find(btn => btn.querySelector('.text-box-trim-both') && btn.textContent);
   };
 
   async function checkAndApplyFavoriteModel() {
+    if (state.isSelectingModel) return;
     if (!state.favoriteModel) return;
 
     const now = Date.now();
@@ -384,7 +399,14 @@
     const trigger = findTriggerButton();
     if (!trigger) return;
 
-    const currentModelText = trigger.innerText.trim();
+    // Do not attempt to open the menu if the trigger button is disabled (e.g., during active search/generation)
+    if (trigger.disabled || 
+        trigger.getAttribute('aria-disabled') === 'true' || 
+        trigger.hasAttribute('disabled')) {
+      return;
+    }
+
+    const currentModelText = trigger.textContent.trim();
     if (isMatch(currentModelText, state.favoriteModel)) {
       return;
     }
@@ -393,6 +415,7 @@
       return;
     }
 
+    state.isSelectingModel = true;
     state.lastSelectionTime = now;
 
     try {
@@ -431,9 +454,9 @@
       });
 
       const matchedItem = selectableItems.find(item => {
-        const lines = item.innerText.split('\n');
+        const lines = item.textContent.split('\n');
         const primaryName = lines[0].trim();
-        return isMatch(primaryName, state.favoriteModel) || isMatch(item.innerText, state.favoriteModel);
+        return isMatch(primaryName, state.favoriteModel) || isMatch(item.textContent, state.favoriteModel);
       });
 
       if (matchedItem) {
@@ -473,9 +496,9 @@
           // Find the active/matched model in the open menu to toggle its slider
           const currentMenuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
           const activeModelItem = Array.from(currentMenuItems).find(item => {
-            const lines = item.innerText.split('\n');
+            const lines = item.textContent.split('\n');
             const primaryName = lines[0].trim();
-            return isMatch(primaryName, state.favoriteModel) || isMatch(item.innerText, state.favoriteModel);
+            return isMatch(primaryName, state.favoriteModel) || isMatch(item.textContent, state.favoriteModel);
           });
 
           if (activeModelItem) {
@@ -541,9 +564,18 @@
         state.lastSelectionTime = Date.now();
       }
     } catch (err) {
-      state.lastSelectionTime = 0;
+      const freshTrigger = findTriggerButton();
+      if (freshTrigger && !freshTrigger.disabled && freshTrigger.getAttribute('aria-disabled') !== 'true') {
+        state.lastSelectionTime = 0;
+      } else {
+        state.lastSelectionTime = Date.now();
+      }
+    } finally {
+      state.isSelectingModel = false;
     }
   }
+
+  const debouncedCheckAndApplyFavoriteModel = debounce(checkAndApplyFavoriteModel, 250);
 
   function initChatObserver() {
     const container = document.querySelector('[data-ask-input-container="true"]');
@@ -566,27 +598,29 @@
 
     state.observedContainer = container;
     state.chatObserver = new MutationObserver(() => {
-      checkAndApplyFavoriteModel();
+      debouncedCheckAndApplyFavoriteModel();
     });
 
     state.chatObserver.observe(container, { childList: true, subtree: true, characterData: true });
   }
 
   function scanAndAttach() {
-    const buttons = document.querySelectorAll('button');
+    const buttons = document.querySelectorAll('button:not([data-clean-copy-attached="true"])');
     buttons.forEach((button) => {
       if (isCopyButton(button)) {
         placeButton(button);
       }
     });
     initChatObserver();
-    checkAndApplyFavoriteModel();
+    debouncedCheckAndApplyFavoriteModel();
   }
+
+  const debouncedScanAndAttach = debounce(scanAndAttach, 250);
 
   function initObserver() {
     if (state.observer) return;
     state.observer = new MutationObserver(() => {
-      scanAndAttach();
+      debouncedScanAndAttach();
     });
     state.observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -610,7 +644,7 @@
       state.favoriteModel = result.favoriteModel || '';
       state.enableThinking = result.enableThinking !== false;
       updateHidingStyle();
-      checkAndApplyFavoriteModel();
+      debouncedCheckAndApplyFavoriteModel();
     });
 
     chrome.runtime.onMessage.addListener((message) => {
@@ -622,12 +656,12 @@
         if ('favoriteModel' in message.settings) {
           state.favoriteModel = message.settings.favoriteModel;
           state.lastSelectionTime = 0;
-          checkAndApplyFavoriteModel();
+          debouncedCheckAndApplyFavoriteModel();
         }
         if ('enableThinking' in message.settings) {
           state.enableThinking = message.settings.enableThinking;
           state.lastSelectionTime = 0;
-          checkAndApplyFavoriteModel();
+          debouncedCheckAndApplyFavoriteModel();
         }
       }
     });
