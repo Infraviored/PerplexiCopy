@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "PlexiCopy",
-  "version": "1.4",
-  "description": "Clean up Perplexity answers: hide UI citations and copy perfectly cleaned Markdown or plain text with one click.",
+  "name": "PlexiEnhancer",
+  "version": "2.0",
+  "description": "Clean up Perplexity answers (hide citations, smart copy answers) and enforce your favorite model against server-side resets.",
   "browser_specific_settings": {
     "gecko": {
       "id": "plexicopy@local",

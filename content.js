@@ -1,6 +1,26 @@
 (() => {
   const CLEAN_BUTTON_LABEL = 'Copy without Citations';
   const STRIP_MD_BUTTON_LABEL = 'Copy without citations and Markdown';
+
+  const CONFIG = {
+    DEBUG: false,
+    NATIVE_COPY_WAIT: 60,
+    TEMP_STATUS_DURATION: 1200,
+    DEBOUNCE_DELAY: 250,
+    AUTO_SELECT_COOLDOWN: 5000,
+    MENU_RENDER_TIMEOUT: 1500,
+    SELECTION_WAIT: 200,
+    REOPEN_WAIT: 100,
+    THINKING_TOGGLE_WAIT: 50,
+    SCRAPE_MENU_WAIT: 200,
+  };
+
+  const console = {
+    log: (...args) => { if (CONFIG.DEBUG) globalThis.console.log(...args); },
+    warn: (...args) => { if (CONFIG.DEBUG) globalThis.console.warn(...args); },
+    error: (...args) => { if (CONFIG.DEBUG) globalThis.console.error(...args); }
+  };
+
   const BUTTON_CLASSNAMES = [
     'focus-visible:bg-subtle',
     'hover:bg-subtle',
@@ -153,7 +173,7 @@
     if (!copyButton) return '';
     try {
       copyButton.click();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise((resolve) => setTimeout(resolve, CONFIG.NATIVE_COPY_WAIT));
       if (navigator.clipboard?.readText) {
         const text = await navigator.clipboard.readText();
         if (text) return text;
@@ -243,7 +263,7 @@
     setTimeout(() => {
       button.setAttribute('aria-label', original);
       button.style.opacity = '';
-    }, 1200);
+    }, CONFIG.TEMP_STATUS_DURATION);
   }
 
   async function writeToClipboard(text) {
@@ -424,8 +444,8 @@
     console.log("[PlexiCopy] checkAndApplyFavoriteModel active. Favorite Model:", state.favoriteModel || "(none)", "Selecting:", state.isSelectingModel, "Has applied favorite:", state.hasAppliedFavorite);
 
     const now = Date.now();
-    if (now - state.lastSelectionTime < 5000) {
-      console.log("[PlexiCopy] Cooldown active, skipping check. Remaining:", 5000 - (now - state.lastSelectionTime), "ms");
+    if (now - state.lastSelectionTime < CONFIG.AUTO_SELECT_COOLDOWN) {
+      console.log("[PlexiCopy] Cooldown active, skipping check. Remaining:", CONFIG.AUTO_SELECT_COOLDOWN - (now - state.lastSelectionTime), "ms");
       return;
     }
 
@@ -478,7 +498,7 @@
         setTimeout(() => {
           menuObserver.disconnect();
           reject(new Error("Timeout waiting for menu items"));
-        }, 1500);
+        }, CONFIG.MENU_RENDER_TIMEOUT);
       });
 
       console.log("[PlexiCopy] Total menu items:", menuItems.length);
@@ -510,8 +530,8 @@
           matchedItem.dispatchEvent(evt);
         });
 
-        console.log("[PlexiCopy] Step 3: Waiting 200ms for selection registration...");
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        console.log(`[PlexiCopy] Step 3: Waiting ${CONFIG.SELECTION_WAIT}ms for selection registration...`);
+        await new Promise((resolve) => setTimeout(resolve, CONFIG.SELECTION_WAIT));
 
         let activeMenu = document.querySelector('[role="menu"]');
         if (!activeMenu) {
@@ -522,7 +542,7 @@
             freshTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
             freshTrigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
             freshTrigger.click();
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, CONFIG.REOPEN_WAIT));
             activeMenu = document.querySelector('[role="menu"]');
           }
         }
@@ -568,7 +588,7 @@
                       }
                       toggleTarget.dispatchEvent(evt);
                     });
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
+                    await new Promise((resolve) => setTimeout(resolve, CONFIG.THINKING_TOGGLE_WAIT));
                   }
                 }
               } else {
@@ -617,7 +637,7 @@
     }
   }
 
-  const debouncedCheckAndApplyFavoriteModel = debounce(checkAndApplyFavoriteModel, 250);
+  const debouncedCheckAndApplyFavoriteModel = debounce(checkAndApplyFavoriteModel, CONFIG.DEBOUNCE_DELAY);
 
   function initChatObserver() {
     const container = document.querySelector('[data-ask-input-container="true"]');
@@ -657,7 +677,7 @@
     debouncedCheckAndApplyFavoriteModel();
   }
 
-  const debouncedScanAndAttach = debounce(scanAndAttach, 250);
+  const debouncedScanAndAttach = debounce(scanAndAttach, CONFIG.DEBOUNCE_DELAY);
 
   function initObserver() {
     if (state.observer) return;
@@ -713,8 +733,8 @@
             trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
             trigger.click();
 
-            // Wait 200ms for Radix dropdown to render
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Wait for Radix dropdown to render
+            await new Promise(resolve => setTimeout(resolve, CONFIG.SCRAPE_MENU_WAIT));
 
             // Scrape menu items
             const menuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
