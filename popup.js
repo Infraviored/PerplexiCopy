@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const hideToggle = document.getElementById('hideCitationsToggle');
+  const removeAdsToggle = document.getElementById('removeComputerAdsToggle');
   const modelInput = document.getElementById('favoriteModel');
   const thinkingToggle = document.getElementById('enableThinkingToggle');
   const enforceOnLoadToggle = document.getElementById('enforceModelOnLoadToggle');
@@ -26,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load current state
-  chrome.storage.local.get(['hideCitations', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad', 'availableModels'], (result) => {
+  chrome.storage.local.get(['hideCitations', 'removeComputerAds', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad', 'availableModels'], (result) => {
     hideToggle.checked = result.hideCitations || false;
+    removeAdsToggle.checked = result.removeComputerAds !== false; // Default to true if not set
     thinkingToggle.checked = result.enableThinking !== false; // Default to true if not set
     enforceOnLoadToggle.checked = result.enforceModelOnLoad !== false; // Default to true if not set
     populateModels(result.availableModels, result.favoriteModel || '');
@@ -42,6 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
           chrome.tabs.sendMessage(tabs[0].id, {
             action: 'updateSettings',
             settings: { hideCitations }
+          });
+        }
+      });
+    });
+  });
+
+  // Handle remove ads toggle change
+  removeAdsToggle.addEventListener('change', () => {
+    const removeComputerAds = removeAdsToggle.checked;
+    chrome.storage.local.set({ removeComputerAds }, () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'updateSettings',
+            settings: { removeComputerAds }
           });
         }
       });
@@ -128,5 +145,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
+  });
+
+  // Listen for external settings updates (e.g. from onboarding card on the page)
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.action === 'settingsUpdatedExternally') {
+      chrome.storage.local.get(['hideCitations', 'removeComputerAds', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad', 'availableModels'], (result) => {
+        hideToggle.checked = result.hideCitations || false;
+        removeAdsToggle.checked = result.removeComputerAds !== false;
+        thinkingToggle.checked = result.enableThinking !== false;
+        enforceOnLoadToggle.checked = result.enforceModelOnLoad !== false;
+        populateModels(result.availableModels, result.favoriteModel || '');
+      });
+    }
   });
 });

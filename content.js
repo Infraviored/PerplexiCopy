@@ -57,7 +57,9 @@
   const state = {
     observer: null,
     hideCitations: false,
+    removeComputerAds: true,
     styleElement: null,
+    adsStyleElement: null,
     favoriteModel: '',
     lastSelectionTime: 0,
     chatObserver: null,
@@ -75,6 +77,13 @@
     span[data-pplx-citation],
     span.citation,
     span:has(> [data-pplx-citation]) {
+      display: none !important;
+    }
+  `;
+
+  const ADS_HIDE_STYLE = `
+    div.fixed.bottom-0.right-0:has(a[href*="/computer"]),
+    div.fixed.bottom-0.right-0:has(a[href*="checklist"]) {
       display: none !important;
     }
   `;
@@ -691,7 +700,7 @@
     if (state.hideCitations) {
       if (!state.styleElement) {
         state.styleElement = document.createElement('style');
-        state.styleElement.id = 'plexicopy-hide-citations';
+        state.styleElement.id = 'plexienhancer-hide-citations';
         document.head.appendChild(state.styleElement);
       }
       state.styleElement.textContent = CITATION_HIDE_STYLE;
@@ -700,20 +709,287 @@
     }
   }
 
+  function updateAdsStyle() {
+    if (state.removeComputerAds) {
+      if (!state.adsStyleElement) {
+        state.adsStyleElement = document.createElement('style');
+        state.adsStyleElement.id = 'plexienhancer-hide-ads';
+        document.head.appendChild(state.adsStyleElement);
+      }
+      state.adsStyleElement.textContent = ADS_HIDE_STYLE;
+    } else if (state.adsStyleElement) {
+      state.adsStyleElement.textContent = '';
+    }
+  }
+  function showOnboardingCard() {
+    if (document.getElementById('plexienhancer-onboarding')) return;
+    if (!document.body) {
+      setTimeout(showOnboardingCard, 100);
+      return;
+    }
+
+    const card = document.createElement('div');
+    card.id = 'plexienhancer-onboarding';
+    card.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      background: rgba(20, 20, 20, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      z-index: 10000;
+      color: #eeeeee;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: opacity 0.3s, transform 0.3s;
+      opacity: 0;
+      transform: translateY(20px);
+    `;
+
+    const titleContainer = document.createElement('div');
+    titleContainer.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    `;
+
+    const title = document.createElement('h3');
+    title.innerText = 'PlexiEnhancer Setup';
+    title.style.cssText = `
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    `;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    `;
+    closeBtn.addEventListener('click', () => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      extensionApi.storage.local.set({ onboardingDismissed: true });
+      setTimeout(() => card.remove(), 300);
+    });
+
+    titleContainer.appendChild(title);
+    titleContainer.appendChild(closeBtn);
+    card.appendChild(titleContainer);
+
+    const desc = document.createElement('p');
+    desc.innerText = 'Choose your favorite model to automatically prevent Perplexity from downgrading your session.';
+    desc.style.cssText = `
+      margin: 0 0 16px 0;
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.4;
+    `;
+    card.appendChild(desc);
+
+    const contentDiv = document.createElement('div');
+    contentDiv.id = 'plexienhancer-onboarding-content';
+    
+    const getBtn = document.createElement('button');
+    getBtn.innerText = 'Get Models & Setup';
+    getBtn.style.cssText = `
+      width: 100%;
+      background: #2e7d32;
+      border: none;
+      color: white;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    getBtn.addEventListener('mouseover', () => getBtn.style.background = '#388e3c');
+    getBtn.addEventListener('mouseout', () => getBtn.style.background = '#2e7d32');
+    
+    getBtn.addEventListener('click', async () => {
+      getBtn.disabled = true;
+      getBtn.innerText = 'Searching Perplexity models...';
+      try {
+        const models = await new Promise((resolve, reject) => {
+          const trigger = findTriggerButton();
+          if (!trigger) {
+            reject(new Error('Model selector button not found. Please check that Perplexity is fully loaded.'));
+            return;
+          }
+
+          trigger.focus();
+          trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+          trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          trigger.click();
+
+          setTimeout(() => {
+            const menuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+            if (menuItems.length === 0) {
+              reject(new Error('No menu items found.'));
+              return;
+            }
+
+            const availableModels = [];
+            menuItems.forEach(item => {
+              const hasLock = item.querySelector('svg use[*|href*="lock"]') !== null || 
+                              item.querySelector('svg use[*|href*="pplx-icon-lock"]') !== null;
+              const isCheckbox = item.getAttribute('role') === 'menuitemcheckbox' ||
+                                 item.querySelector('[role="switch"]') !== null;
+              if (!hasLock && !isCheckbox) {
+                const lines = item.innerText.split('\n');
+                const primaryName = lines[0].trim();
+                if (primaryName && !availableModels.includes(primaryName)) {
+                  availableModels.push(primaryName);
+                }
+              }
+            });
+
+            const activeMenu = document.querySelector('[role="menu"]');
+            if (activeMenu) {
+              const escEvent = new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true,
+                cancelable: true
+              });
+              activeMenu.dispatchEvent(escEvent);
+            }
+
+            resolve(availableModels);
+          }, CONFIG.SCRAPE_MENU_WAIT);
+        });
+
+        if (models.length === 0) {
+          throw new Error('No models found.');
+        }
+
+        contentDiv.innerHTML = '';
+        const select = document.createElement('select');
+        select.style.cssText = `
+          width: 100%;
+          background: #111;
+          border: 1px solid #333;
+          color: #eee;
+          padding: 8px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          outline: none;
+          font-size: 13px;
+        `;
+        models.forEach(model => {
+          const opt = document.createElement('option');
+          opt.value = model;
+          opt.innerText = model;
+          select.appendChild(opt);
+        });
+
+        const saveBtn = document.createElement('button');
+        saveBtn.innerText = 'Save Favorite Model';
+        saveBtn.style.cssText = `
+          width: 100%;
+          background: #2e7d32;
+          border: none;
+          color: white;
+          padding: 10px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: background 0.2s;
+        `;
+        saveBtn.addEventListener('mouseover', () => saveBtn.style.background = '#388e3c');
+        saveBtn.addEventListener('mouseout', () => saveBtn.style.background = '#2e7d32');
+        saveBtn.addEventListener('click', () => {
+          const selectedModel = select.value;
+          extensionApi.storage.local.set({ favoriteModel: selectedModel, availableModels: models }, () => {
+            state.favoriteModel = selectedModel;
+            state.lastSelectionTime = 0;
+            state.hasAppliedFavorite = false;
+            state.lastObservedModelText = '';
+            
+            try {
+              extensionApi.runtime.sendMessage({ action: 'settingsUpdatedExternally' });
+            } catch(e){}
+
+            debouncedCheckAndApplyFavoriteModel();
+            
+            contentDiv.innerHTML = '<div style="color: #4caf50; font-size: 13px; font-weight: 600; text-align: center; margin-top: 8px;">✓ Favorite model saved!</div>';
+            setTimeout(() => {
+              card.style.opacity = '0';
+              card.style.transform = 'translateY(20px)';
+              setTimeout(() => card.remove(), 300);
+            }, 1500);
+          });
+        });
+
+        contentDiv.appendChild(select);
+        contentDiv.appendChild(saveBtn);
+      } catch (err) {
+        getBtn.disabled = false;
+        getBtn.innerText = 'Get Models & Setup';
+        const errMsg = document.createElement('div');
+        errMsg.innerText = err.message || 'Error loading models.';
+        errMsg.style.cssText = `
+          color: #ff5252;
+          font-size: 12px;
+          margin-top: 8px;
+          line-height: 1.4;
+        `;
+        const existingError = contentDiv.querySelector('.onboarding-error');
+        if (existingError) existingError.remove();
+        errMsg.classList.add('onboarding-error');
+        contentDiv.appendChild(errMsg);
+      }
+    });
+
+    contentDiv.appendChild(getBtn);
+    card.appendChild(contentDiv);
+    document.body.appendChild(card);
+
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, 10);
+  }
+
   function initSettings() {
     if (!extensionApi) {
       console.error("[PlexiCopy] ERROR: Extension API not found.");
       return;
     }
     console.log("[PlexiCopy] Reading stored settings...");
-    extensionApi.storage.local.get(['hideCitations', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad'], (result) => {
+    extensionApi.storage.local.get(['hideCitations', 'removeComputerAds', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad', 'onboardingDismissed'], (result) => {
       console.log("[PlexiCopy] Retrieved settings from storage:", result);
       state.hideCitations = result.hideCitations || false;
+      state.removeComputerAds = result.removeComputerAds !== false;
       state.favoriteModel = result.favoriteModel || '';
       state.enableThinking = result.enableThinking !== false;
       state.enforceModelOnLoad = result.enforceModelOnLoad !== false;
       updateHidingStyle();
+      updateAdsStyle();
       debouncedCheckAndApplyFavoriteModel();
+
+      if (!state.favoriteModel && !result.onboardingDismissed) {
+        showOnboardingCard();
+      }
     });
 
     extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -790,6 +1066,10 @@
         if ('hideCitations' in message.settings) {
           state.hideCitations = message.settings.hideCitations;
           updateHidingStyle();
+        }
+        if ('removeComputerAds' in message.settings) {
+          state.removeComputerAds = message.settings.removeComputerAds;
+          updateAdsStyle();
         }
         if ('favoriteModel' in message.settings) {
           state.favoriteModel = message.settings.favoriteModel;

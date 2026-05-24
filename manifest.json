@@ -5,7 +5,7 @@
   "description": "Clean up Perplexity answers (hide citations, smart copy answers) and enforce your favorite model against server-side resets.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "plexicopy@local",
+      "id": "plexienhancer@local",
       "data_collection_permissions": {
         "required": [
           "none"
@@ -25,7 +25,7 @@
     "storage"
   ],
   "browser_action": {
-    "default_title": "PlexiCopy Settings",
+    "default_title": "PlexiEnhancer Settings",
     "default_popup": "popup.html"
   },
   "content_scripts": [

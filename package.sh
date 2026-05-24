@@ -1,5 +1,5 @@
 #!/bin/bash
-# Package Firefox extension for PlexiCopy
+# Package Firefox extension for PlexiEnhancer
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,7 +11,7 @@ if [[ ! -f "${MANIFEST_FILE}" ]]; then
   exit 1
 fi
 
-EXTENSION_NAME="plexicopy"
+EXTENSION_NAME="plexienhancer"
 VERSION=$(grep -m1 '"version"' "${MANIFEST_FILE}" | sed -E 's/.*"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
 
 if [[ -z "${VERSION}" ]]; then

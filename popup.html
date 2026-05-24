@@ -163,27 +163,34 @@
     <div class="header">
         <h1>PlexiEnhancer</h1>
     </div>
-    <div class="toggle-container">
+    <div class="toggle-container" title="Hide citation markers and inline references from Perplexity answers">
         <span class="label">Hide citations in UI</span>
         <label class="switch">
             <input type="checkbox" id="hideCitationsToggle">
             <span class="slider"></span>
         </label>
     </div>
+    <div class="toggle-container" style="margin-top: 12px;" title="Hide the Computer setup advertisement box from the bottom right of the page">
+        <span class="label">Remove computer ads</span>
+        <label class="switch">
+            <input type="checkbox" id="removeComputerAdsToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
     <div class="setting-container" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: #1a1a1a; border: 1px solid var(--border); transition: border-color 0.2s; margin-top: 12px;">
         <label for="favoriteModel" style="font-size: 14px; font-weight: 500; color: var(--fg);">Favorite Model</label>
-        <select id="favoriteModel">
+        <select id="favoriteModel" title="Select the model you want to enforce as your favorite">
             <option value="">No models loaded</option>
         </select>
-        <button type="button" id="getModelsBtn">Get Models</button>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);">
+        <button type="button" id="getModelsBtn" title="Scrape and retrieve available models from Perplexity">Get Models</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);" title="Enable or disable the thinking process flag for the selected model">
             <span class="label" style="font-size: 13px; font-weight: 500; color: var(--fg);">Enable Thinking</span>
             <label class="switch">
                 <input type="checkbox" id="enableThinkingToggle">
                 <span class="slider"></span>
             </label>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);" title="Enforce the favorite model immediately upon page load">
             <span class="label" style="font-size: 13px; font-weight: 500; color: var(--fg);">Enforce on load</span>
             <label class="switch">
                 <input type="checkbox" id="enforceModelOnLoadToggle">
@@ -192,7 +199,7 @@
         </div>
     </div>
     <div class="footer" style="margin-top: 16px; font-size: 11px; color: #666; text-align: center;">
-        Clean answers, better focus.
+        Clean answers, better copying, and the model you prefer.
     </div>
     <script src="popup.js"></script>
 </body>
