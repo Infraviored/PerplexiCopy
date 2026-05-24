@@ -730,6 +730,51 @@
 
     const card = document.createElement('div');
     card.id = 'plexienhancer-onboarding';
+
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      #plexienhancer-onboarding .switch {
+        position: relative;
+        display: inline-block;
+        width: 34px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      #plexienhancer-onboarding .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      #plexienhancer-onboarding .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #333;
+        transition: .3s;
+        border-radius: 20px;
+      }
+      #plexienhancer-onboarding .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+      }
+      #plexienhancer-onboarding input:checked + .slider {
+        background-color: #2e7d32;
+      }
+      #plexienhancer-onboarding input:checked + .slider:before {
+        transform: translateX(14px);
+      }
+    `;
+    card.appendChild(styleEl);
     card.style.cssText = `
       position: fixed;
       bottom: 24px;
@@ -804,77 +849,77 @@
 
     const contentDiv = document.createElement('div');
     contentDiv.id = 'plexienhancer-onboarding-content';
-    
-    const getBtn = document.createElement('button');
-    getBtn.innerText = 'Get Models & Setup';
-    getBtn.style.cssText = `
-      width: 100%;
-      background: #2e7d32;
-      border: none;
-      color: white;
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: 600;
+
+    const loader = document.createElement('div');
+    loader.innerText = 'Searching Perplexity models...';
+    loader.style.cssText = `
       font-size: 13px;
-      cursor: pointer;
-      transition: background 0.2s;
+      color: #aaa;
+      text-align: center;
+      padding: 10px 0;
     `;
-    getBtn.addEventListener('mouseover', () => getBtn.style.background = '#388e3c');
-    getBtn.addEventListener('mouseout', () => getBtn.style.background = '#2e7d32');
-    
-    getBtn.addEventListener('click', async () => {
-      getBtn.disabled = true;
-      getBtn.innerText = 'Searching Perplexity models...';
+    contentDiv.appendChild(loader);
+
+    async function loadOnboardingModels() {
       try {
         const models = await new Promise((resolve, reject) => {
-          const trigger = findTriggerButton();
-          if (!trigger) {
-            reject(new Error('Model selector button not found. Please check that Perplexity is fully loaded.'));
-            return;
-          }
-
-          trigger.focus();
-          trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-          trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-          trigger.click();
-
-          setTimeout(() => {
-            const menuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
-            if (menuItems.length === 0) {
-              reject(new Error('No menu items found.'));
+          let attempts = 0;
+          const attemptScrape = () => {
+            const trigger = findTriggerButton();
+            if (!trigger) {
+              attempts++;
+              if (attempts < 10) {
+                setTimeout(attemptScrape, 300);
+              } else {
+                reject(new Error('Model selector button not found. Please start a thread or check that Perplexity is fully loaded.'));
+              }
               return;
             }
 
-            const availableModels = [];
-            menuItems.forEach(item => {
-              const hasLock = item.querySelector('svg use[*|href*="lock"]') !== null || 
-                              item.querySelector('svg use[*|href*="pplx-icon-lock"]') !== null;
-              const isCheckbox = item.getAttribute('role') === 'menuitemcheckbox' ||
-                                 item.querySelector('[role="switch"]') !== null;
-              if (!hasLock && !isCheckbox) {
-                const lines = item.innerText.split('\n');
-                const primaryName = lines[0].trim();
-                if (primaryName && !availableModels.includes(primaryName)) {
-                  availableModels.push(primaryName);
-                }
+            trigger.focus();
+            trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            trigger.click();
+
+            setTimeout(() => {
+              const menuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+              if (menuItems.length === 0) {
+                reject(new Error('No menu items found.'));
+                return;
               }
-            });
 
-            const activeMenu = document.querySelector('[role="menu"]');
-            if (activeMenu) {
-              const escEvent = new KeyboardEvent('keydown', {
-                key: 'Escape',
-                code: 'Escape',
-                keyCode: 27,
-                which: 27,
-                bubbles: true,
-                cancelable: true
+              const availableModels = [];
+              menuItems.forEach(item => {
+                const hasLock = item.querySelector('svg use[*|href*="lock"]') !== null || 
+                                item.querySelector('svg use[*|href*="pplx-icon-lock"]') !== null;
+                const isCheckbox = item.getAttribute('role') === 'menuitemcheckbox' ||
+                                   item.querySelector('[role="switch"]') !== null;
+                if (!hasLock && !isCheckbox) {
+                  const lines = item.innerText.split('\n');
+                  const primaryName = lines[0].trim();
+                  if (primaryName && !availableModels.includes(primaryName)) {
+                    availableModels.push(primaryName);
+                  }
+                }
               });
-              activeMenu.dispatchEvent(escEvent);
-            }
 
-            resolve(availableModels);
-          }, CONFIG.SCRAPE_MENU_WAIT);
+              const activeMenu = document.querySelector('[role="menu"]');
+              if (activeMenu) {
+                const escEvent = new KeyboardEvent('keydown', {
+                  key: 'Escape',
+                  code: 'Escape',
+                  keyCode: 27,
+                  which: 27,
+                  bubbles: true,
+                  cancelable: true
+                });
+                activeMenu.dispatchEvent(escEvent);
+              }
+
+              resolve(availableModels);
+            }, CONFIG.SCRAPE_MENU_WAIT);
+          };
+          attemptScrape();
         });
 
         if (models.length === 0) {
@@ -901,6 +946,38 @@
           select.appendChild(opt);
         });
 
+        const thinkingContainer = document.createElement('div');
+        thinkingContainer.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+          padding: 2px 4px;
+        `;
+
+        const thinkingLabel = document.createElement('span');
+        thinkingLabel.innerText = 'Enable Thinking';
+        thinkingLabel.style.cssText = `
+          font-size: 13px;
+          color: #aaa;
+        `;
+
+        const switchLabel = document.createElement('label');
+        switchLabel.className = 'switch';
+
+        const thinkingInput = document.createElement('input');
+        thinkingInput.type = 'checkbox';
+        thinkingInput.checked = true;
+
+        const sliderSpan = document.createElement('span');
+        sliderSpan.className = 'slider';
+
+        switchLabel.appendChild(thinkingInput);
+        switchLabel.appendChild(sliderSpan);
+
+        thinkingContainer.appendChild(thinkingLabel);
+        thinkingContainer.appendChild(switchLabel);
+
         const saveBtn = document.createElement('button');
         saveBtn.innerText = 'Save Favorite Model';
         saveBtn.style.cssText = `
@@ -919,8 +996,10 @@
         saveBtn.addEventListener('mouseout', () => saveBtn.style.background = '#2e7d32');
         saveBtn.addEventListener('click', () => {
           const selectedModel = select.value;
-          extensionApi.storage.local.set({ favoriteModel: selectedModel, availableModels: models }, () => {
+          const enableThinking = thinkingInput.checked;
+          extensionApi.storage.local.set({ favoriteModel: selectedModel, availableModels: models, enableThinking: enableThinking }, () => {
             state.favoriteModel = selectedModel;
+            state.enableThinking = enableThinking;
             state.lastSelectionTime = 0;
             state.hasAppliedFavorite = false;
             state.lastObservedModelText = '';
@@ -941,26 +1020,44 @@
         });
 
         contentDiv.appendChild(select);
+        contentDiv.appendChild(thinkingContainer);
         contentDiv.appendChild(saveBtn);
       } catch (err) {
-        getBtn.disabled = false;
-        getBtn.innerText = 'Get Models & Setup';
+        contentDiv.innerHTML = '';
         const errMsg = document.createElement('div');
         errMsg.innerText = err.message || 'Error loading models.';
         errMsg.style.cssText = `
           color: #ff5252;
           font-size: 12px;
-          margin-top: 8px;
+          margin-bottom: 12px;
           line-height: 1.4;
+          text-align: center;
         `;
-        const existingError = contentDiv.querySelector('.onboarding-error');
-        if (existingError) existingError.remove();
-        errMsg.classList.add('onboarding-error');
         contentDiv.appendChild(errMsg);
-      }
-    });
 
-    contentDiv.appendChild(getBtn);
+        const retryBtn = document.createElement('button');
+        retryBtn.innerText = 'Retry';
+        retryBtn.style.cssText = `
+          width: 100%;
+          background: #333;
+          border: 1px solid #444;
+          color: white;
+          padding: 8px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+        `;
+        retryBtn.addEventListener('click', () => {
+          contentDiv.innerHTML = '';
+          contentDiv.appendChild(loader);
+          loadOnboardingModels();
+        });
+        contentDiv.appendChild(retryBtn);
+      }
+    }
+
+    loadOnboardingModels();
     card.appendChild(contentDiv);
     document.body.appendChild(card);
 

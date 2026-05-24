@@ -1,11 +1,11 @@
 {
   "manifest_version": 2,
   "name": "PlexiEnhancer",
-  "version": "2.0",
+  "version": "2.1",
   "description": "Clean up Perplexity answers (hide citations, smart copy answers) and enforce your favorite model against server-side resets.",
   "browser_specific_settings": {
     "gecko": {
-      "id": "plexienhancer@local",
+      "id": "plexicopy@local",
       "data_collection_permissions": {
         "required": [
           "none"
