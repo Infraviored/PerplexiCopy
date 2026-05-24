@@ -46,6 +46,7 @@
     isSelectingModel: false,
     hasAppliedFavorite: false,
     enforceModelOnLoad: true,
+    lastObservedModelText: '',
   };
 
   const CITATION_HIDE_STYLE = `
@@ -393,10 +394,34 @@
       .find(btn => btn.querySelector('.text-box-trim-both') && btn.innerText);
   };
 
+  const isGenerating = () => {
+    return document.querySelector('button[aria-label*="Stop"]') !== null ||
+           document.querySelector('.animate-pplxIndicator') !== null ||
+           document.querySelector('[class*="animate-pplxIndicator"]') !== null;
+  };
+
   async function checkAndApplyFavoriteModel() {
-    console.log("[PlexiCopy] checkAndApplyFavoriteModel active. Favorite Model:", state.favoriteModel || "(none)", "Selecting:", state.isSelectingModel, "Has applied favorite:", state.hasAppliedFavorite);
     if (state.isSelectingModel) return;
     if (!state.favoriteModel) return;
+
+    const trigger = findTriggerButton();
+    if (!trigger) return;
+
+    const currentModelText = trigger.innerText.trim();
+
+    // If the model label has not changed since our last check, avoid running any logic.
+    if (currentModelText === state.lastObservedModelText) {
+      return;
+    }
+
+    // Wait until Perplexity is done processing/generating before attempting selection.
+    if (isGenerating()) {
+      return;
+    }
+
+    state.lastObservedModelText = currentModelText;
+
+    console.log("[PlexiCopy] checkAndApplyFavoriteModel active. Favorite Model:", state.favoriteModel || "(none)", "Selecting:", state.isSelectingModel, "Has applied favorite:", state.hasAppliedFavorite);
 
     const now = Date.now();
     if (now - state.lastSelectionTime < 5000) {
@@ -404,13 +429,6 @@
       return;
     }
 
-    const trigger = findTriggerButton();
-    if (!trigger) {
-      console.log("[PlexiCopy] Model selector trigger button not found on page.");
-      return;
-    }
-
-    const currentModelText = trigger.innerText.trim();
     console.log("[PlexiCopy] Current model label on page is:", currentModelText);
     if (isMatch(currentModelText, state.favoriteModel)) {
       console.log("[PlexiCopy] Current model already matches favorite model. Marking as applied.");
@@ -418,8 +436,8 @@
       return;
     }
 
-    // If we have already applied the favorite model, or if the user has disabled "enforceModelOnLoad",
-    // we avoid overriding any custom non-default model selections (to respect manual choices).
+    // On initial page initialization, we enforce the favorite model over whatever custom model Perplexity restored.
+    // Once applied, we only override default placeholder models to respect manual session selections.
     if ((state.hasAppliedFavorite || !state.enforceModelOnLoad) && !isDefaultModel(currentModelText)) {
       console.log("[PlexiCopy] Current model is a non-default custom selection, avoiding override.");
       return;
@@ -492,8 +510,8 @@
           matchedItem.dispatchEvent(evt);
         });
 
-        console.log("[PlexiCopy] Step 3: Waiting 1 second for selection registration...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("[PlexiCopy] Step 3: Waiting 200ms for selection registration...");
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         let activeMenu = document.querySelector('[role="menu"]');
         if (!activeMenu) {
@@ -504,7 +522,7 @@
             freshTrigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
             freshTrigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
             freshTrigger.click();
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 100));
             activeMenu = document.querySelector('[role="menu"]');
           }
         }
@@ -689,6 +707,7 @@
           state.favoriteModel = message.settings.favoriteModel;
           state.lastSelectionTime = 0;
           state.hasAppliedFavorite = false;
+          state.lastObservedModelText = '';
           debouncedCheckAndApplyFavoriteModel();
         }
         if ('enableThinking' in message.settings) {
