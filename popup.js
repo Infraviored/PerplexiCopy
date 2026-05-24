@@ -2,12 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const hideToggle = document.getElementById('hideCitationsToggle');
   const modelInput = document.getElementById('favoriteModel');
   const thinkingToggle = document.getElementById('enableThinkingToggle');
+  const enforceOnLoadToggle = document.getElementById('enforceModelOnLoadToggle');
 
   // Load current state
-  chrome.storage.local.get(['hideCitations', 'favoriteModel', 'enableThinking'], (result) => {
+  chrome.storage.local.get(['hideCitations', 'favoriteModel', 'enableThinking', 'enforceModelOnLoad'], (result) => {
     hideToggle.checked = result.hideCitations || false;
     modelInput.value = result.favoriteModel || '';
     thinkingToggle.checked = result.enableThinking !== false; // Default to true if not set
+    enforceOnLoadToggle.checked = result.enforceModelOnLoad !== false; // Default to true if not set
   });
 
   // Handle hide citations toggle change
@@ -49,6 +51,21 @@ document.addEventListener('DOMContentLoaded', () => {
           chrome.tabs.sendMessage(tabs[0].id, {
             action: 'updateSettings',
             settings: { enableThinking }
+          });
+        }
+      });
+    });
+  });
+
+  // Handle enforce model on load change
+  enforceOnLoadToggle.addEventListener('change', () => {
+    const enforceModelOnLoad = enforceOnLoadToggle.checked;
+    chrome.storage.local.set({ enforceModelOnLoad }, () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'updateSettings',
+            settings: { enforceModelOnLoad }
           });
         }
       });
