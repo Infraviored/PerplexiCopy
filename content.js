@@ -365,9 +365,9 @@
 
   const isMatch = (text, target) => {
     if (!text || !target) return false;
-    const cleanText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanTarget = target.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return cleanText.includes(cleanTarget) || cleanTarget.includes(cleanText);
+    const cleanText = text.toLowerCase().replace(/\s*thinking\s*$/, '').trim().replace(/[^a-z0-9]/g, '');
+    const cleanTarget = target.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    return cleanText === cleanTarget;
   };
 
   function debounce(fn, delay) {
@@ -696,8 +696,76 @@
       debouncedCheckAndApplyFavoriteModel();
     });
 
-    extensionApi.runtime.onMessage.addListener((message) => {
+    extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log("[PlexiCopy] Received background/popup message:", message);
+      if (message.action === 'scrapeModels') {
+        (async () => {
+          try {
+            const trigger = findTriggerButton();
+            if (!trigger) {
+              sendResponse({ success: false, error: 'Model selector button not found' });
+              return;
+            }
+
+            // Click dropdown to open menu
+            trigger.focus();
+            trigger.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+            trigger.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            trigger.click();
+
+            // Wait 200ms for Radix dropdown to render
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Scrape menu items
+            const menuItems = document.querySelectorAll('[role="menuitemradio"], [role="menuitem"]');
+            if (menuItems.length === 0) {
+              sendResponse({ success: false, error: 'No menu items rendered' });
+              return;
+            }
+
+            // Filter out locked items and switches/checkboxes
+            const availableModels = [];
+            menuItems.forEach(item => {
+              const hasLock = item.querySelector('svg use[*|href*="lock"]') !== null || 
+                              item.querySelector('svg use[*|href*="pplx-icon-lock"]') !== null;
+              const isCheckbox = item.getAttribute('role') === 'menuitemcheckbox' ||
+                                 item.querySelector('[role="switch"]') !== null;
+              if (!hasLock && !isCheckbox) {
+                const lines = item.innerText.split('\n');
+                const primaryName = lines[0].trim();
+                if (primaryName && !availableModels.includes(primaryName)) {
+                  availableModels.push(primaryName);
+                }
+              }
+            });
+
+            // Close the menu
+            const activeMenu = document.querySelector('[role="menu"]');
+            if (activeMenu) {
+              const escEvent = new KeyboardEvent('keydown', {
+                key: 'Escape',
+                code: 'Escape',
+                keyCode: 27,
+                which: 27,
+                bubbles: true,
+                cancelable: true
+              });
+              activeMenu.dispatchEvent(escEvent);
+            }
+
+            // Save to storage
+            extensionApi.storage.local.set({ availableModels }, () => {
+              console.log("[PlexiCopy] Scraped and stored available models:", availableModels);
+              sendResponse({ success: true, models: availableModels });
+            });
+          } catch (err) {
+            console.error("[PlexiCopy] Error scraping models:", err);
+            sendResponse({ success: false, error: err.message });
+          }
+        })();
+        return true; // Keep message channel open for async response
+      }
+
       if (message.action === 'updateSettings') {
         if ('hideCitations' in message.settings) {
           state.hideCitations = message.settings.hideCitations;

@@ -114,6 +114,48 @@
             color: #666;
             text-align: center;
         }
+
+        #favoriteModel {
+            background: #111;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        #favoriteModel:focus {
+            border-color: var(--accent);
+        }
+
+        #getModelsBtn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        #getModelsBtn:hover {
+            background: var(--accent-hover);
+        }
+
+        #getModelsBtn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -130,16 +172,10 @@
     </div>
     <div class="setting-container" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: #1a1a1a; border: 1px solid var(--border); transition: border-color 0.2s; margin-top: 12px;">
         <label for="favoriteModel" style="font-size: 14px; font-weight: 500; color: var(--fg);">Favorite Model</label>
-        <input type="text" id="favoriteModel" list="modelList" placeholder="e.g. Gemini, Sonar, Claude" style="background: #111; border: 1px solid var(--border); color: var(--fg); padding: 6px 10px; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s; box-sizing: border-box; width: 100%;">
-        <datalist id="modelList">
-            <option value="Best"></option>
-            <option value="Sonar 2"></option>
-            <option value="GPT-5.4"></option>
-            <option value="Gemini 3.1 Pro"></option>
-            <option value="Claude Sonnet 4.6"></option>
-            <option value="Kimi K2.6"></option>
-            <option value="Nemotron 3 Super"></option>
-        </datalist>
+        <select id="favoriteModel">
+            <option value="">No models loaded</option>
+        </select>
+        <button type="button" id="getModelsBtn">Get Models</button>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border);">
             <span class="label" style="font-size: 13px; font-weight: 500; color: var(--fg);">Enable Thinking</span>
             <label class="switch">
